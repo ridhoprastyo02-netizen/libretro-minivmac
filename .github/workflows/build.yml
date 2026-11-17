@@ -1,1 +1,33 @@
+name: Build minivmac armhf
 
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install cross compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential bc gcc-arm-linux-gnueabihf
+
+      - name: Build core
+        run: make platform=classic_armv7_a7 CC=arm-linux-gnueabihf-gcc -j2
+
+      - name: Show result
+        run: |
+          ls -la *.so
+          file minivmac_libretro.so || true
+          readelf -V minivmac_libretro.so | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1 || true
+          readelf -d minivmac_libretro.so | grep NEEDED || true
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: minivmac_libretro_armhf
+          path: minivmac_libretro.so
